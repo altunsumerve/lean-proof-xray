@@ -13,3 +13,8 @@
 ## C. Theorems proved in one step (0; among the 263 theorems with readable proofs)
 
 (none)
+
+## D. Definitions whose body is `True` in the whole export (0; all definitions scanned, library included)
+
+| Name | Arguments |
+|---|---:|

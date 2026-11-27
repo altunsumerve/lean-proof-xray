@@ -13,3 +13,8 @@
 ## C. Tek adımla kanıtlanan teoremler (0; ispatı okunabilen 263 teorem içinde)
 
 (yok)
+
+## D. Bütün kayıtta gövdesi `True` olan tanımlar (0; kayıttaki tanımların tamamı tarandı, kütüphane dahil)
+
+| Ad | Argüman |
+|---|---:|

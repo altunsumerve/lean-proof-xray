@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>X-ray report: PFR_conjecture</title><style>
+@page{size:A4;margin:18mm 17mm}body{font-family:'DejaVu Sans','Noto Sans',Arial,sans-serif;font-size:10.5pt;line-height:1.5;color:#1a1a1a;max-width:176mm;margin:0 auto}
+h1{font-size:21pt;margin:0 0 2pt}h2{font-size:13.5pt;margin:20pt 0 6pt;padding-bottom:3pt;border-bottom:1.5pt solid #1a1a1a}h2 small{font-size:8pt;font-weight:normal;color:#666;float:right;margin-top:5pt}
+.alt{color:#555;margin:0 0 12pt}.kunye{font-size:9pt;color:#444;margin-bottom:10pt}code{font-family:'DejaVu Sans Mono',monospace;font-size:9pt;background:#f1f1ee;padding:0 2pt;border-radius:2pt;word-break:break-all}
+table{border-collapse:collapse;width:100%;font-size:9.5pt}td,th{padding:4pt 6pt;border-bottom:.5pt solid #ccc;vertical-align:top;text-align:left}th{border-bottom:1pt solid #1a1a1a}td.s{text-align:right;white-space:nowrap}
+.ozet td:first-child{width:14pt;font-weight:bold;text-align:center}.ozet td:nth-child(2){width:32%;font-weight:bold}.ok td:first-child{color:#1c7c3c}.uyari td:first-child{color:#b45309}.bilgi td:first-child{color:#777}
+.herkes{font-size:11.5pt;line-height:1.6}.not{font-size:8.5pt;color:#555}.kutu{background:#f6f6f3;border-left:3pt solid #999;padding:7pt 10pt;font-size:9pt;margin-top:8pt}li{margin-bottom:4pt}.sayfa{page-break-before:always}
+</style></head><body>
+<h1>X-ray report</h1><p class='alt'>What is inside a Lean proof</p>
+<p class='kunye'><b>Root theorem:</b> <code>PFR_conjecture</code><br><b>Source:</b> teorth/pfr 1899ce8ed95fc310cce53d4c7ecfa2beb20ebec4 leanprover/lean4:v4.37.0-rc1</p>
+<h2>Summary <small>counted by the tool</small></h2><table class='ozet'>
+<tr class='ok'><td>✓</td><td>What it proves</td><td>The main statement is written with library notions only; no project definition is inside it.</td></tr>
+<tr class='ok'><td>✓</td><td>What it rests on</td><td>Only Lean's standard axioms (Classical.choice, Quot.sound, propext). No missing proof.</td></tr>
+<tr class='bilgi'><td>·</td><td>How large</td><td>The proof has 658 project declarations; 582 of them are theorems.</td></tr>
+<tr class='bilgi'><td>·</td><td>Which way it goes</td><td>The junction of the proof: <code>PFR_conjecture_aux</code> (share 97.7%: that much of the proof exists only for it).</td></tr>
+<tr class='ok'><td>✓</td><td>Conditions that test nothing</td><td>None found (the whole export was scanned).</td></tr>
+<tr class='ok'><td>✓</td><td>Statements carried as hypotheses</td><td>0</td></tr>
+<tr class='bilgi'><td>·</td><td>Repetition</td><td>12.2% of the theorem statements are copies, under another name, of a statement already there.</td></tr>
+</table>
+<h2>For everyone</h2><p>No story has been written for this proof yet. The map is ready; the story step is run with arac/hikaye/ANLATICI.md.</p>
+<h2 class='sayfa'>Evidence <small>counted by the tool</small></h2><h3>The largest steps</h3><table><tr><th>Step</th><th>Share</th><th>Exists only for</th></tr>
+<tr><td><code>PFR_conjecture</code></td><td class='s'>%100.0</td><td>—</td></tr>
+<tr><td><code>PFR_conjecture_aux</code></td><td class='s'>%97.7</td><td><code>PFR_conjecture</code></td></tr>
+<tr><td><code>entropic_PFR_conjecture</code></td><td class='s'>%73.6</td><td><code>PFR_conjecture_aux</code></td></tr>
+<tr><td><code>tau_strictly_decreases</code></td><td class='s'>%59.4</td><td><code>entropic_PFR_conjecture</code></td></tr>
+<tr><td><code>tau_strictly_decreases_aux</code></td><td class='s'>%56.1</td><td><code>tau_strictly_decreases</code></td></tr>
+<tr><td><code>cond_construct_good</code></td><td class='s'>%13.1</td><td><code>tau_strictly_decreases_aux</code></td></tr>
+<tr><td><code>construct_good&#x27;</code></td><td class='s'>%12.2</td><td><code>cond_construct_good</code></td></tr>
+<tr><td><code>construct_good</code></td><td class='s'>%12.1</td><td><code>construct_good&#x27;</code></td></tr>
+<tr><td><code>sum_dist_diff_le</code></td><td class='s'>%10.3</td><td><code>tau_strictly_decreases_aux</code></td></tr>
+<tr><td><code>construct_good_prelim</code></td><td class='s'>%9.9</td><td><code>construct_good</code></td></tr>
+<tr><td><code>sum_condMutual_le</code></td><td class='s'>%7.7</td><td><code>tau_strictly_decreases_aux</code></td></tr>
+<tr><td><code>ent_bsg</code></td><td class='s'>%7.2</td><td><code>construct_good_prelim</code></td></tr>
+<tr><td><code>second_estimate</code></td><td class='s'>%4.5</td><td><code>sum_condMutual_le</code></td></tr>
+<tr><td><code>ProbabilityTheory.Kernel.chain_rule</code></td><td class='s'>%4.4</td><td><code>PFR_conjecture_aux</code></td></tr>
+</table><p class='not'>“Share”: the part of the proof that exists only for that step. It is not a measure of importance.</p>
+<div class='kutu'><b>Who did what.</b> Every number in the summary and on the evidence page was counted by fixed rules from Lean's own export; no AI was used and anyone who reruns it gets the same numbers. The sections “For everyone”, “The idea in five sentences”, “For a mathematician” and “What the narrator could not tell” were written by a language model (Claude), which saw only the map and the code of the single declarations it asked for. The checker confirms the structure of the story (are the steps real, in their real places, with their real weights); it does not confirm the mathematical reading. That reading has not been reviewed by a mathematician.</div><p class='not'>lean-proof-xray · github.com/altunsumerve/lean-proof-xray</p></body></html>

@@ -110,14 +110,14 @@ Kodda karşılığı olmayan iddialar (ilk 30) / claims not backed by the code:
 - `sumset-lower-gen` (`ProbabilityTheory.max_entropy_sub_mutualInfo_le_entropy_add`) → `neg-ent` (`ProbabilityTheory.entropy_neg`)
 - `ruz-dist-def` (`rdist_def`) → `independent-exist` (`ProbabilityTheory.independent_copies`)
 - `ruz-copy` (`ProbabilityTheory.IdentDistrib.rdist_congr`) → `ruz-dist-def` (`rdist_def`)
-- `ruz-indep` (`ProbabilityTheory.IndepFun.rdist_eq`) → `copy-ent` (`ProbabilityTheory.IdentDistrib.entropy_congr`)
 - `ruz-indep` (`ProbabilityTheory.IndepFun.rdist_eq`) → `relabeled-entropy` (`ProbabilityTheory.entropy_comp_of_injective`)
+- `ruz-indep` (`ProbabilityTheory.IndepFun.rdist_eq`) → `copy-ent` (`ProbabilityTheory.IdentDistrib.entropy_congr`)
 - `ruzsa-diff` (`diff_ent_le_rdist`) → `neg-ent` (`ProbabilityTheory.entropy_neg`)
 - `ruzsa-triangle-improved` (`ent_of_diff_le`) → `subadditive` (`ProbabilityTheory.entropy_pair_le_add`)
 - `cond-dist-def` (`condRuzsaDist`) → `ruz-dist-def` (`rdist_def`)
-- `cond-dist-alt` (`condRuzsaDist_of_copy`) → `ruz-copy` (`ProbabilityTheory.IdentDistrib.rdist_congr`)
 - `cond-dist-alt` (`condRuzsaDist_of_copy`) → `copy-ent` (`ProbabilityTheory.IdentDistrib.entropy_congr`)
 - `cond-dist-alt` (`condRuzsaDist_of_copy`) → `ruz-indep` (`ProbabilityTheory.IndepFun.rdist_eq`)
+- `cond-dist-alt` (`condRuzsaDist_of_copy`) → `ruz-copy` (`ProbabilityTheory.IdentDistrib.rdist_congr`)
 - `entropic-bsg` (`ent_bsg`) → `add-entropy` (`ProbabilityTheory.entropy_pair_eq_add`)
 - `uniform-entropy` (`ProbabilityTheory.IsUniform.entropy_eq`) → `concave` (`Real.strictConcaveOn_negMulLog`)
 - `conditional-chain-rule` (`ProbabilityTheory.cond_chain_rule`) → `chain-rule` (`ProbabilityTheory.chain_rule`)
@@ -129,8 +129,8 @@ Kodda karşılığı olmayan iddialar (ilk 30) / claims not backed by the code:
 - `tau-def` (`tau`) → `ruz-dist-def` (`rdist_def`)
 - `distance-lower` (`distance_ge_of_min`) → `tau-min` (`tau_minimizer_exists`)
 - `fibring-ident` (`rdist_of_indep_eq_sum_fibre`) → `independent-exist` (`ProbabilityTheory.independent_copies`)
-- `fibring-ident` (`rdist_of_indep_eq_sum_fibre`) → `ruz-copy` (`ProbabilityTheory.IdentDistrib.rdist_congr`)
 - `fibring-ident` (`rdist_of_indep_eq_sum_fibre`) → `submodularity` (`ProbabilityTheory.entropy_submodular`)
+- `fibring-ident` (`rdist_of_indep_eq_sum_fibre`) → `ruz-copy` (`ProbabilityTheory.IdentDistrib.rdist_congr`)
 
 Kodda olup blueprint'te yazılmamış bağımlılık örnekleri (ilk 30) / dependencies in the code missing from the blueprint:
 
