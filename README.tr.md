@@ -166,7 +166,7 @@ Belgelerin tamamı:
 | Belge | Ne gösterir |
 |---|---|
 | [`CIKTI_tr.md`](sinama/alpoge/CIKTI_tr.md) | kanıtlanan cümle ve ispatın omurgası, adım adım |
-| [`KONI.md`](sinama/alpoge/KONI.md) | sayılar, kullanılmayan kod, kopyalar, baskınlık ağacı, en büyük 50 adım |
+| [`KONI.md`](sinama/alpoge/KONI.md) | sayılar, kopyalar, baskınlık ağacı, en büyük 50 adım |
 | [`BOS_tr.md`](sinama/alpoge/BOS_tr.md) | hiçbir şey sınamayan koşullar |
 | [`VARSAYIM_tr.md`](sinama/alpoge/VARSAYIM_tr.md) | taşınan 738 önermenin en ağır 80'i ve nerede karşılandıkları |
 
@@ -226,7 +226,7 @@ Bir kök teorem için, Türkçe ve İngilizce:
 
 | Dosya | İçerik |
 |---|---|
-| `KONI.md` | boyutlar; ispat konisindeki bütün aksiyomlar; kullanılmayan kod; kopya önermeler; baskınlık ağacı |
+| `KONI.md` | boyutlar; ispat konisindeki bütün aksiyomlar; kayıtta olup kökün kullanmadığı kod; kopya önermeler; baskınlık ağacı |
 | `CIKTI_*.md` | kanıtlanan cümle, düz cümlelerle; ispatın omurgası ve her adımın payı |
 | `VARSAYIM_*.md` | varsayım olarak taşınan adlandırılmış önermeler ve her birinin ispat konisinde nerede kurulduğu |
 | `BOS_*.md` | argümanlarına bakmadan doğru olan koşullar, alansız yapılar, tek adımlık ispatlar |

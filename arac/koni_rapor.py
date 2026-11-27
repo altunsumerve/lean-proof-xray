@@ -112,6 +112,8 @@ def main():
     y(f"| Kökün önermesini anlamak için gereken proje bildirimi / project declarations needed to read the root's statement | {b(O['onerme_konisinde_proje'])} | |")
     y(f"| Konideki kütüphane bildirimi / library declarations in the cone | {b(O['konide_kutuphane'])} | |")
     y("")
+    y('> Not / note: bu satır yalnızca girdideki kaydı sayar. Kayıt belirli teoremler için dışa aktarıldıysa yalnızca onların gerektirdiğini içerir; o teoremlerin kullanmadığı proje kodu kayıtta yoktur ve burada sayılmaz. / This row counts only what is in the input record. A record exported for specific theorems contains only what they need, so project code those theorems do not use is absent from it and is not counted here.')
+    y("")
     y("İfade ağırlığı: bildirimin kayda eklediği yeni ifade düğümü sayısı (ispatın büyüklüğünün ölçüsü). "
       "/ Expression weight: number of new expression nodes the declaration added to the export.")
     y("")

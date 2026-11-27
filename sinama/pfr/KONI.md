@@ -16,6 +16,8 @@ Bu sayfadaki sayılar resmi Lean kaydının (lean4export) bağımlılık grafiğ
 | Kökün önermesini anlamak için gereken proje bildirimi / project declarations needed to read the root's statement | 1 | |
 | Konideki kütüphane bildirimi / library declarations in the cone | 50.918 | |
 
+> Not / note: bu satır yalnızca girdideki kaydı sayar. Kayıt belirli teoremler için dışa aktarıldıysa yalnızca onların gerektirdiğini içerir; o teoremlerin kullanmadığı proje kodu kayıtta yoktur ve burada sayılmaz. / This row counts only what is in the input record. A record exported for specific theorems contains only what they need, so project code those theorems do not use is absent from it and is not counted here.
+
 İfade ağırlığı: bildirimin kayda eklediği yeni ifade düğümü sayısı (ispatın büyüklüğünün ölçüsü). / Expression weight: number of new expression nodes the declaration added to the export.
 
 | Tür / kind | Projede / in project | Konide / in cone |

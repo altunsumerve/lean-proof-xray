@@ -167,7 +167,7 @@ The full documents:
 | Document | What it shows |
 |---|---|
 | [`CIKTI_en.md`](sinama/alpoge/CIKTI_en.md) | the statement proved and the spine of the proof, step by step |
-| [`KONI.md`](sinama/alpoge/KONI.md) | sizes, unused code, duplicates, the dominator tree, the 50 largest steps |
+| [`KONI.md`](sinama/alpoge/KONI.md) | sizes, duplicates, the dominator tree, the 50 largest steps |
 | [`BOS_en.md`](sinama/alpoge/BOS_en.md) | conditions that test nothing |
 | [`VARSAYIM_en.md`](sinama/alpoge/VARSAYIM_en.md) | the 80 heaviest of the 738 carried statements and where they are supplied |
 
@@ -229,7 +229,7 @@ For a root theorem the tool writes, in English and Turkish:
 
 | File | Content |
 |---|---|
-| `KONI.md` | sizes; every axiom in the proof cone; unused code; duplicate statements; the dominator tree |
+| `KONI.md` | sizes; every axiom in the proof cone; code in the record the root does not use; duplicate statements; the dominator tree |
 | `CIKTI_*.md` | the statement proved, in plain sentences; the spine of the proof with each step's share |
 | `VARSAYIM_*.md` | named statements carried as hypotheses, and where in the proof cone each one is built |
 | `BOS_*.md` | conditions that are true regardless of their arguments, field-less structures, one-step proofs |
