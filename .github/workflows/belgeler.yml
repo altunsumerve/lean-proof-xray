@@ -1,0 +1,62 @@
+# Belgeler / Documents — derleme yapmadan, depodaki ağaç ve önbellekteki dökümden belgeleri yeniden üretir
+# TR: sinama/<ad>/ klasöründeki taslar_ust.tsv, ozet.json ve önbellekteki terim dökümünden CIKTI, VARSAYIM, BOS, MANTIK
+#     belgelerini iki dilde yazar (arac/hepsi.sh). Lean gerekmez; birkaç dakika sürer.
+#     Terim dökümü başka projenin kodundan türediği için depoya işlenmez; Actions önbelleğinde tutulur (son erişimden yaklaşık 7 gün sonra silinir).
+#     Döküm önbellekte yoksa önce o proje için `sinama` koşulmalıdır.
+# EN: Regenerates every document from the committed tree and the cached dump of a project. No Lean, a few minutes.
+#     The dump is kept in the Actions cache, not in the repository; run `sinama` for the project first if it is gone.
+name: belgeler
+on:
+  workflow_dispatch:
+    inputs:
+      ad:
+        description: "sinama/ altındaki klasör (tek) / one folder under sinama/"
+        default: "pfr"
+      kok_onerme:
+        description: "Ana önermenin adı (boş: yok) / name of the main statement"
+        default: ""
+permissions:
+  contents: write
+concurrency:
+  group: belgeler-${{ inputs.ad }}
+  cancel-in-progress: true
+jobs:
+  belgeler:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Yer / Space
+        run: sudo mkdir -p /mnt/is/sonuc && sudo chown -R "$USER" /mnt/is
+      - name: Döküm / Dump
+        uses: actions/cache/restore@v4
+        with:
+          path: /mnt/is/sonuc/dokak.jsonl.gz
+          key: dok-${{ inputs.ad }}-yok
+          restore-keys: dok-${{ inputs.ad }}-
+      - name: Üret / Generate
+        run: |
+          set -uo pipefail
+          if [ ! -s /mnt/is/sonuc/dokak.jsonl.gz ]; then echo "Döküm önbellekte yok: önce bu proje için sinama koşulmalı / dump not in cache: run sinama first"; exit 1; fi
+          KO="${{ inputs.kok_onerme }}"; [ -n "$KO" ] || KO=-
+          mkdir -p /tmp/c
+          for a in ${{ inputs.ad }}; do
+            H="sinama/$a"
+            sed -i -E 's/\.#([0-9]+)/.\1/g' "$H/taslar_ust.tsv"
+            bash arac/hepsi.sh "$H" /mnt/is/sonuc/dokak.jsonl.gz "$KO" 8 "/tmp/c/$a" 2>&1 | tail -20
+          done
+      - name: Kaydet / Commit
+        run: |
+          git config user.name "kunye-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for i in 1 2 3 4 5 6; do
+            git fetch -q origin main && git reset -q --hard origin/main
+            for a in ${{ inputs.ad }}; do
+              sed -i -E 's/\.#([0-9]+)/.\1/g' "sinama/$a/taslar_ust.tsv"
+              cp /tmp/c/$a/*.md "sinama/$a"/ 2>/dev/null || true
+            done
+            git add sinama
+            git commit -q -m "Belgeler / documents: ${{ inputs.ad }}" || break
+            git push -q origin HEAD:main && break
+            sleep $((RANDOM % 20 + 5))
+          done

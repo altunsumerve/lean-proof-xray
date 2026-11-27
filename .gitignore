@@ -1,0 +1,11 @@
+arac/kapanis
+arac/parmakizi
+*.bin
+*.ndjson
+*.ndjson.zst
+__pycache__/
+# başka projelerin kodundan türetilen terim dökümleri depoya girmez (iş akışları önbellekte tutar)
+dokak.jsonl.gz
+dok.jsonl.gz
+onermeler.jsonl
+.lake/

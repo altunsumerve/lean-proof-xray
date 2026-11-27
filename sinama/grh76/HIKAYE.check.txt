@@ -1,0 +1,47 @@
+names in the story: 47; steps of the proof: 47; NOT steps of the proof: 0 []
+claims: 43; confirmed 43; wrong 0
+  ok (100.0%)                                  - STEP `riemannHypothesis`
+  ok (100.0%)                                  - STEP `New.grh`
+  ok (99.7%)                                   - STEP `eventually_primeError_le_rpow`
+  ok (93.4%)                                   - STEP `star_inequality`
+  ok (20.2%)                                   - STEP `Data.integral_forms_long`
+  ok (7.8%)                                    - STEP `Data.exists_family_covolumeSq_le`
+  ok (11.5%)                                   - STEP `exists_isFitFamily`
+  ok (4.2%)                                    - STEP `Data.seesaw`
+  ok                                           - UNDER `riemannHypothesis` `New.grh`
+  ok                                           - UNDER `New.grh` `eventually_primeError_le_rpow`
+  ok                                           - UNDER `eventually_primeError_le_rpow` `star_inequality`
+  ok                                           - UNDER `star_inequality` `Data.integral_forms_long`
+  ok                                           - UNDER `star_inequality` `sphericalCompat_of_odd`
+  ok                                           - UNDER `star_inequality` `Data.exists_family_covolumeSq_le`
+  ok                                           - UNDER `star_inequality` `Data.ramifiedColumns_fill_rows`
+  ok                                           - UNDER `star_inequality` `exchange_theorem`
+  ok                                           - UNDER `Data.integral_forms_long` `exists_isFitFamily`
+  ok                                           - UNDER `Data.integral_forms_long` `Data.heightLe_volume_ratio_sq`
+  ok                                           - UNDER `Data.integral_forms_long` `Data.heightLe_volume_rows`
+  ok                                           - UNDER `Data.heightLe_volume_ratio_sq` `Data.heightLe_liftVolume_ratio`
+  ok                                           - UNDER `Data.heightLe_volume_rows` `Data.crude_rows`
+  ok                                           - UNDER `exists_isFitFamily` `denominatorLe_rowBudget`
+  ok                                           - UNDER `exists_isFitFamily` `exists_mFoldTwist_selmerLengthLe`
+  ok                                           - UNDER `denominatorLe_rowBudget` `ribet_columns`
+  ok                                           - UNDER `ribet_columns` `sum_blockLoss_le`
+  ok                                           - UNDER `Data.exists_family_covolumeSq_le` `Data.seesaw`
+  ok                                           - UNDER `Data.exists_family_covolumeSq_le` `Data.short_forms`
+  ok                                           - UNDER `Data.short_forms` `Data.exists_indexDvd_Bmu_divisible`
+  ok                                           - UNDER `sphericalCompat_of_odd` `sphericalCompat_of_split`
+  ok                                           - UNDER `sphericalCompat_of_split` `exists_rep_of_cuspidal_type`
+  ok                                           - UNDER `exists_rep_of_cuspidal_type` `Model.exists_galois_rep`
+  ok                                           - UNDER `Model.exists_galois_rep` `ellAdicCohom.woods_hole`
+  ok                                           - UNDER `Data.ramifiedColumns_fill_rows` `Filling.Fits.exists_translate_finrank_comap_le`
+  ok                                           - SHARE `star_inequality` 93.4
+  ok                                           - SHARE `Data.integral_forms_long` 20.2
+  ok                                           - SHARE `sphericalCompat_of_odd` 19.1
+  ok                                           - SHARE `exists_rep_of_cuspidal_type` 18.2
+  ok                                           - SHARE `exists_isFitFamily` 11.5
+  ok                                           - SHARE `Model.exists_galois_rep` 10.4
+  ok                                           - SHARE `Data.exists_family_covolumeSq_le` 7.8
+  ok                                           - SHARE `denominatorLe_rowBudget` 7.0
+  ok                                           - SHARE `Data.ramifiedColumns_fill_rows` 5.4
+  ok                                           - SHARE `exchange_theorem` 3.8
+heavy steps (>=10%, not mere wrappers) the story never mentions: 0
+required questions: 10; answered 10; answered NOT FOUND 0 []; missing 0 []

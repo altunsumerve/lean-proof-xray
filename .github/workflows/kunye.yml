@@ -1,0 +1,45 @@
+# Proof passport / İspat künyesi
+# EN: Add to your Lean repository and run it from the Actions tab ("Run workflow"). Free on public repositories.
+#     The report goes to the job summary and to the "kunye" artifact. STATUS: experimental, not yet tested on a real repo.
+# TR: Kendi Lean deponuza ekleyin, Actions sekmesinden "Run workflow" ile çalıştırın. Public depolarda ücretsiz.
+#     Rapor iş özetine ve "kunye" çıktısına yazılır. DURUM: deneysel, henüz gerçek bir depoda denenmedi.
+name: ispat-kunyesi
+on:
+  workflow_dispatch:
+    inputs:
+      modul:
+        description: "Module containing the theorem / Teoremi içeren modül (e.g. Mathlib.NumberTheory.SumFourSquares)"
+        required: true
+      teorem:
+        description: "Full theorem name / Teoremin tam adı (e.g. Nat.sum_four_squares)"
+        required: true
+      dil:
+        description: "Report language / Rapor dili (en | tr)"
+        default: "en"
+permissions:
+  contents: read
+jobs:
+  kunye:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the Lean project / Lean projesini derle
+        uses: leanprover/lean-action@v1
+      - name: Get the tool / Aracı al
+        run: git clone --depth 1 https://github.com/altunsumerve/lean-proof-xray kunye-araci
+      - name: Build lean4export for this Lean version / Uygun lean4export'u derle
+        run: |
+          surum=$(sed -E 's/.*:v?//' lean-toolchain)
+          git clone https://github.com/leanprover/lean4export.git /tmp/l4e
+          cd /tmp/l4e && (git checkout -q "v$surum" || git checkout -q "v${surum%.*}.0")
+          cp "$GITHUB_WORKSPACE/lean-toolchain" . && lake build
+      - name: Make the passport / Künyeyi üret
+        run: |
+          python3 kunye-araci/kunye.py --proje . --modul "${{ inputs.modul }}" --teorem "${{ inputs.teorem }}" \
+            --lean4export /tmp/l4e/.lake/build/bin/lean4export --cikti kunye.md --dil "${{ inputs.dil }}"
+          cat kunye.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kunye
+          path: kunye.md

@@ -1,0 +1,29 @@
+# Evrak / Report — bir sonuç klasöründen tek belge (HTML ve PDF), Türkçe ve İngilizce
+# TR: sinama/<ad>/ klasöründeki sonuçlardan ve varsa hikâyeden RAPOR_tr ve RAPOR_en üretir (arac/evrak.py). Yapay zekâ yok.
+# EN: One document (HTML and PDF, Turkish and English) from a result folder and its story, if any. No AI.
+name: evrak
+on:
+  workflow_dispatch:
+    inputs:
+      ad:
+        description: "Folder under sinama/ / sinama/ altındaki klasör"
+        required: true
+permissions:
+  contents: write
+jobs:
+  evrak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Üret / Generate
+        run: |
+          set -euo pipefail
+          H="sinama/${{ inputs.ad }}"
+          if [ -f "$H/HIKAYE.md" ]; then Q=""; [ -f "$H/HIKAYE.questions.md" ] && Q="$H/HIKAYE.questions.md"; python3 -I arac/hikaye/denetle.py "$H" "$H/HIKAYE.md" $Q > "$H/HIKAYE.check.txt" || true; fi
+          for d in tr en; do python3 -I arac/evrak.py --klasor "$H" --dil $d --pdf; done
+          git config user.name "kunye-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$H"
+          git commit -q -m "evrak: ${{ inputs.ad }}" || exit 0
+          git pull -q --rebase origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}"

@@ -1,0 +1,30 @@
+# Test — Lean gerektirmeyen sınamalar / tests that need no Lean
+# TR: arac/ ya da test/ değişince koşar (yaklaşık 1 dakika): düz cümle çevirisi (test/duz_test.py) ve grafik araçları
+#     (test/grafik_test.py: aksiyom listesi, "nerede kuruluyor" sınıfları, baskınlık ağacının kaba kuvvetle karşılaştırması).
+# EN: Runs when arac/ or test/ change: plain-sentence tests and graph-tool tests (dominator tree against brute force).
+name: test
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "arac/**"
+      - "test/**"
+      - ".github/workflows/test.yml"
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Düz cümle / Plain sentences
+        run: python3 -I test/duz_test.py
+      - name: Grafik araçları / Graph tools
+        run: python3 -I test/grafik_test.py 400
+      - name: Uçtan uca / End to end
+        run: bash test/uctan_uca.sh
+      - name: Hikâye denetçisi / Story checker
+        run: |
+          python3 -I arac/hikaye/denetle.py sinama/grh76 sinama/grh76/HIKAYE.md sinama/grh76/HIKAYE.questions.md
+          python3 -I arac/hikaye/denetle.py sinama/grh76 sinama/grh76/HIKAYE_tr.md sinama/grh76/HIKAYE.questions.md

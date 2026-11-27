@@ -1,0 +1,48 @@
+# Self-test / Kendi kendini sınama
+# EN: Builds the small project in test/ornek, makes a passport for a fully proved theorem and for one with
+#     `sorry`, and checks that the tool tells them apart. Run by hand from the Actions tab.
+# TR: test/ornek içindeki küçük projeyi derler; tam ispatlı bir teorem ile `sorry` içeren bir teorem için künye
+#     üretir ve aracın ikisini ayırt ettiğini denetler. Actions sekmesinden elle çalıştırılır.
+name: selftest
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  selftest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lean (elan) / Lean'i kur
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build the test project / Sınama projesini derle
+        working-directory: test/ornek
+        run: lake build
+      - name: Build lean4export for this Lean version / Uygun lean4export'u derle
+        run: |
+          surum=$(sed -E 's/.*:v?//' test/ornek/lean-toolchain)
+          git clone https://github.com/leanprover/lean4export.git /tmp/l4e
+          cd /tmp/l4e && (git checkout -q "v$surum" || git checkout -q "v${surum%.*}.0")
+          cp "$GITHUB_WORKSPACE/test/ornek/lean-toolchain" . && lake build
+      - name: Fully proved theorem must pass / Tam ispatlı teorem geçmeli
+        run: |
+          python3 kunye.py --proje test/ornek --modul Ornek --teorem Ornek.ana_teorem \
+            --lean4export /tmp/l4e/.lake/build/bin/lean4export --cikti ana.md --siki
+          cat ana.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Theorem with sorry must be flagged / sorry'li teorem yakalanmalı
+        run: |
+          if python3 kunye.py --proje test/ornek --modul Ornek --teorem Ornek.eksik_teorem \
+               --lean4export /tmp/l4e/.lake/build/bin/lean4export --cikti eksik.md --dil tr --siki; then
+            echo "HATA / ERROR: sorry was not detected"; exit 1
+          fi
+          grep -q sorryAx eksik.md
+          cat eksik.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: selftest-reports
+          path: |
+            ana.md
+            eksik.md

@@ -1,0 +1,5 @@
+{"bildirim":222105,"kenar":9769370,"ifade_agirligi":80683079,"kutuphane_ayrimi":true,"kutuphane":171830,
+"proje":50275,"proje_agirlik":49559910,"konide_proje":49815,"konide_proje_agirlik":49559910,"konide_kutuphane":170155,
+"onerme_konisinde_proje":1,"onerme_konisinde_kutuphane":5021,"agac_dugum":49815,"agac_kenar":625901,"baskinlik_turu":2,
+"proje_tur":{"c":[495,495],"d":[6598,6598],"i":[489,489],"r":[489,29],"t":[42204,42204]},"kok":["riemannHypothesis"],
+"aksiyom_kayitta":3,"aksiyom_konide":["propext","Quot.sound","Classical.choice"]}

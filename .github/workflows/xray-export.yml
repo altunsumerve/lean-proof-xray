@@ -1,0 +1,269 @@
+# xray-export — hazır bir lean4export kaydından röntgen / x-ray from a ready-made lean4export file
+# EN: For proofs too large to build here. Give the URL of an export (.ndjson, .ndjson.zst or .ndjson.gz) and the
+#     root theorem. The file is streamed, never stored whole: full dependency graph, proof cone, axioms, dominator
+#     tree, duplicates (KONI.md), then the term dump of the heaviest steps and the documents (CIKTI, VARSAYIM, BOS).
+#     The export is streamed three times (graph, then two passes for the dump). The graph is cached: later runs
+#     take minutes. Results are committed to sinama/<ad>/.
+# TR: Burada derlenemeyecek kadar büyük ispatlar için. Kaydın URL'si ve kök teorem verilir. Dosya akıtılır, bütünü
+#     saklanmaz: tam grafik, ispat konisi, aksiyomlar, baskınlık ağacı, kopyalar (KONI.md); sonra en ağır adımların
+#     terim dökümü ve belgeler. Kayıt üç kez akıtılır. Grafik önbelleğe alınır. Sonuç sinama/<ad>/ klasörüne yazılır.
+#     Terim dökümü depoya işlenmez; Actions önbelleğinde tutulur.
+name: xray-export
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "URL of the export file / kaydın adresi (.ndjson, .zst, .gz)"
+        required: true
+      teorem:
+        description: "Root theorem / kök teorem"
+        required: true
+      kokler:
+        description: "Project name roots, space separated, or a file in this repo with one per line (empty: everything is project) / projenin kök ad alanları"
+        default: ""
+      mathlib:
+        description: "Mathlib commit the proof was built against (optional; gives an exact project/library split) / ispatın kullandığı Mathlib sürümü"
+        default: ""
+      ad:
+        description: "Result folder name / sonuç klasörü adı"
+        required: true
+      kok_onerme:
+        description: "Name of the main statement if it is a named definition (optional) / ana önermenin adı"
+        default: ""
+      kapasite:
+        description: "Upper bound on the number of expressions in the export / kayıttaki ifade sayısı için üst sınır"
+        default: "2100000000"
+      belgeler:
+        description: "Also write the documents (two more passes over the export): evet / hayir"
+        default: "evet"
+permissions:
+  contents: write
+concurrency:
+  group: xray-export-${{ inputs.ad }}
+  cancel-in-progress: false
+jobs:
+  xray:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      KUNYE_KAPASITE: ${{ inputs.kapasite }}
+      URL: ${{ inputs.url }}
+      TEOREM: ${{ inputs.teorem }}
+      KOKLER: ${{ inputs.kokler }}
+      AD: ${{ inputs.ad }}
+      KOK_ONERME: ${{ inputs.kok_onerme }}
+      MATHLIB: ${{ inputs.mathlib }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Disk
+        id: disk
+        run: |
+          sudo mkdir -p /mnt/is && sudo chown "$USER" /mnt/is
+          mkdir -p /mnt/is/koni /mnt/is/sonuc /mnt/is/ay
+          # geçici tablolar büyük kayıtlarda ~17 GB tutar; koşucuda hazır gelen büyük araç takımlarını silerek yer aç
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL /usr/local/share/boost /usr/share/swift /usr/local/.ghcup || true
+          df -h /mnt / | tail -2; free -g | head -2; nproc
+          echo "uh=$(printf '%s' "$URL" | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+      - name: Grafik önbelleği / Graph cache
+        id: grafik
+        uses: actions/cache/restore@v4
+        with:
+          path: /mnt/is/koni
+          key: export-v1-${{ steps.disk.outputs.uh }}-${{ hashFiles('arac/koni.cpp', 'arac/parmakizi.cpp') }}
+      - name: Kaydı akıt / Stream the export
+        if: steps.grafik.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          g++ -O2 -o /mnt/is/koni_x arac/koni.cpp
+          g++ -O2 -o /mnt/is/parmak_x arac/parmakizi.cpp
+          mkfifo /mnt/is/boru
+          /mnt/is/parmak_x /mnt/is/p.bin /mnt/is/yok < /mnt/is/boru > /mnt/is/koni/parmak.tsv 2> /mnt/is/koni/parmak.log &
+          PP=$!
+          date -u
+          bash arac/akit.sh "$URL" | tee --output-error=warn /mnt/is/boru \
+            | /mnt/is/koni_x /mnt/is/k.bin /mnt/is/koni 2>&1 | tee /mnt/is/koni/koni.log
+          wait $PP || echo "parmak izi basarisiz"
+          date -u
+          cat /mnt/is/koni/parmak.log
+          rm -f /mnt/is/k.bin /mnt/is/p.bin /mnt/is/boru
+          ls -la /mnt/is/koni
+          wc -l /mnt/is/koni/dugum.tsv /mnt/is/koni/parmak.tsv
+      - name: İlerleme günlüğü / Progress log
+        if: always() && steps.grafik.outputs.cache-hit != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: xray-export-${{ inputs.ad }}-log
+          path: /mnt/is/koni/koni.log
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Grafiği sakla / Save the graph
+        if: steps.grafik.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: /mnt/is/koni
+          key: export-v1-${{ steps.disk.outputs.uh }}-${{ hashFiles('arac/koni.cpp', 'arac/parmakizi.cpp') }}
+      # Proje/kütüphane ayrımı. Kesin yol: ispatın kullandığı Mathlib sürümü verilirse o ortamdaki bütün adlar kütüphanedir
+      # (Lean kurulur, Mathlib'in hazır derlemesi indirilir; yaklaşık 10 dk, sonra önbellekten). Verilmezse ad köklerine bakılır.
+      - name: Kütüphane önbelleği / Library names cache
+        id: kut
+        if: inputs.mathlib != ''
+        uses: actions/cache/restore@v4
+        with:
+          path: /mnt/is/kut
+          key: kut-v1-${{ inputs.mathlib }}-${{ hashFiles('arac/kutuphane_adlari.lean') }}
+      - name: Kütüphane adları / Library names
+        if: inputs.mathlib != '' && steps.kut.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          mkdir -p /mnt/is/kutp /mnt/is/kut && cd /mnt/is/kutp
+          curl -sSfL "https://raw.githubusercontent.com/leanprover-community/mathlib4/$MATHLIB/lean-toolchain" -o lean-toolchain
+          cat lean-toolchain
+          printf 'name = "kutp"\n\n[[require]]\nname = "mathlib"\ngit = "https://github.com/leanprover-community/mathlib4"\nrev = "%s"\n' "$MATHLIB" > lakefile.toml
+          lake update
+          lake exe cache get
+          lake env lean --run "$GITHUB_WORKSPACE/arac/kutuphane_adlari.lean" /mnt/is/kut/kutuphane.txt Mathlib
+          wc -l /mnt/is/kut/kutuphane.txt
+          rm -rf /mnt/is/kutp "$HOME/.elan/toolchains"
+      - name: Kütüphane adlarını sakla / Save library names
+        if: inputs.mathlib != '' && steps.kut.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: /mnt/is/kut
+          key: kut-v1-${{ inputs.mathlib }}-${{ hashFiles('arac/kutuphane_adlari.lean') }}
+      - name: Ağaç, aksiyomlar, rapor / Tree, axioms, report
+        run: |
+          set -euo pipefail
+          g++ -O2 -o /mnt/is/agac_x arac/agac.cpp
+          # proje kökleri: dosya adı verildiyse dosyadan, değilse boşlukla ayrılmış listeden
+          if [ -n "$KOKLER" ] && [ -f "$KOKLER" ]; then cp "$KOKLER" /mnt/is/kokler.txt; else printf '%s\n' $KOKLER > /mnt/is/kokler.txt; fi
+          K=-
+          if [ -s /mnt/is/kut/kutuphane.txt ]; then
+            # kesin ayrım: Mathlib ortamındaki adlar
+            cp /mnt/is/kut/kutuphane.txt /mnt/is/kutuphane.txt; K=/mnt/is/kutuphane.txt
+            if [ -n "$KOKLER" ]; then cp /mnt/is/kokler.txt /mnt/is/sonuc/proje_kokleri.txt; fi
+          elif [ -s /mnt/is/kokler.txt ] && [ -n "$KOKLER" ]; then
+            # kütüphane adları: ilk ad bileşeni proje köklerinde olmayan her bildirim (_private.<modül>.#0.<ad> için asıl ad #0'dan sonra)
+            awk -F'\t' 'NR==FNR { if ($1 != "") k[$1]=1; next }
+              { n = split($3, p, "."); b = p[1];
+                if (b == "_private") for (i = 2; i < n; i++) if (p[i] == "#0") { b = p[i+1]; break }
+                if (!(b in k)) print $3 }' /mnt/is/kokler.txt /mnt/is/koni/dugum.tsv > /mnt/is/kutuphane.txt
+            wc -l /mnt/is/kutuphane.txt; K=/mnt/is/kutuphane.txt
+            cp /mnt/is/kokler.txt /mnt/is/sonuc/proje_kokleri.txt
+          fi
+          printf '%s\n' "$TEOREM" > /mnt/is/kok.txt
+          /mnt/is/agac_x /mnt/is/koni/dugum.tsv /mnt/is/koni/kenar.bin /mnt/is/kok.txt "$K" /mnt/is/sonuc 2>&1 | tee /mnt/is/sonuc/agac.log
+          cat /mnt/is/sonuc/aksiyomlar.tsv
+          python3 -I arac/koni_rapor.py --koni /mnt/is/sonuc --parmak /mnt/is/koni/parmak.tsv --md /mnt/is/sonuc/KONI.md --ust /mnt/is/sonuc/taslar_ust.tsv
+          if [ "$K" != "-" ]; then
+            awk -F'\t' 'NR==FNR { k[$0]=1; next } !($3 in k) { print $3 }' /mnt/is/kutuphane.txt /mnt/is/koni/dugum.tsv | sed -E 's/\.#([0-9]+)/.\1/g' | LC_ALL=C sort | gzip -9 -n > /mnt/is/sonuc/proje_adlari.txt.gz
+          fi
+          printf '%s\n' "$URL" > /mnt/is/sonuc/kaynak.txt
+          ls -la /mnt/is/sonuc
+      - name: Ara kayıt / Save the tree early
+        if: always()
+        run: |
+          set -uo pipefail
+          D=${GITHUB_REF_NAME}; H="sinama/$AD"
+          git config user.name "kunye-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for i in 1 2 3 4 5 6; do
+            git fetch -q origin "$D" && git reset -q --hard "origin/$D"
+            mkdir -p "$H"
+            cp /mnt/is/sonuc/KONI.md /mnt/is/sonuc/ozet.json /mnt/is/sonuc/aksiyomlar.tsv /mnt/is/sonuc/kaynak.txt /mnt/is/sonuc/proje_kokleri.txt /mnt/is/sonuc/proje_adlari.txt.gz "$H"/ 2>/dev/null || true
+            if [ -f /mnt/is/sonuc/taslar_ust.tsv ]; then sed -E 's/\.#([0-9]+)/.\1/g' /mnt/is/sonuc/taslar_ust.tsv > "$H/taslar_ust.tsv"; fi
+            python3 -I arac/sinama_tablo.py > /dev/null || true
+            git add sinama SINAMA.md
+            git commit -q -m "xray-export: $AD (koni, aksiyomlar / cone, axioms)" || break
+            git push -q origin "HEAD:$D" && break
+            sleep $((RANDOM % 20 + 5))
+          done
+          if [ -f /mnt/is/sonuc/KONI.md ]; then head -c 200000 /mnt/is/sonuc/KONI.md >> "$GITHUB_STEP_SUMMARY"; fi
+      - name: Döküm önbelleği / Dump cache
+        id: ay
+        if: inputs.belgeler == 'evet'
+        uses: actions/cache/restore@v4
+        with:
+          path: /mnt/is/ay
+          key: export-ay-v2-${{ steps.disk.outputs.uh }}-${{ inputs.teorem }}-${{ inputs.mathlib }}-${{ hashFiles('arac/ayikla.cpp', 'arac/agac.cpp', 'arac/koni.cpp', 'arac/onerme_koni.py') }}
+      - name: Kaydı iki kez daha akıt / Two more passes for the dump
+        if: inputs.belgeler == 'evet' && steps.ay.outputs.cache-hit != 'true'
+        env:
+          AYIKLA_BOS: /mnt/is/ay/bos_tum.tsv
+        run: |
+          set -euo pipefail
+          g++ -O2 -o /mnt/is/ayikla_x arac/ayikla.cpp
+          # en ağır 3000 adım ve önermelerini okumak için gereken proje tanımları (grafikten; kavramların içi de dökülsün);
+          # ispat terimi yalnız kısa olanlar için (değer boyu ≤ 3000)
+          awk -F'\t' 'NR > 1 { print $1 }' /mnt/is/sonuc/taslar_ust.tsv > /mnt/is/kok_ad.txt
+          KT=/mnt/is/kutuphane.txt; [ -s "$KT" ] || KT=-
+          python3 -I arac/onerme_koni.py /mnt/is/koni/dugum.tsv /mnt/is/koni/kenar.bin /mnt/is/kok_ad.txt "$KT" > /mnt/is/ad.txt
+          awk -F'\t' 'NR > 1 && $9 <= 3000 { print $1 }' /mnt/is/sonuc/taslar_ust.tsv > /mnt/is/ispat.txt
+          wc -l /mnt/is/ad.txt /mnt/is/ispat.txt
+          date -u
+          bash arac/akit.sh "$URL" | /mnt/is/ayikla_x 1 /mnt/is/g.bin /mnt/is/ad.txt /mnt/is/ispat.txt 2>&1 | tee /mnt/is/ay/gecis1.log
+          date -u
+          bash arac/akit.sh "$URL" | /mnt/is/ayikla_x 2 /mnt/is/g.bin /mnt/is/ad.txt /mnt/is/ispat.txt 2> /mnt/is/ay/gecis2.log | zstd -3 -T2 -q -o /mnt/is/ay/ay.ndjson.zst
+          date -u; cat /mnt/is/ay/gecis2.log; ls -la /mnt/is/ay
+          rm -f /mnt/is/g.bin*
+      - name: Dökümü sakla / Save the dump passes
+        if: inputs.belgeler == 'evet' && steps.ay.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: /mnt/is/ay
+          key: export-ay-v2-${{ steps.disk.outputs.uh }}-${{ inputs.teorem }}-${{ inputs.mathlib }}-${{ hashFiles('arac/ayikla.cpp', 'arac/agac.cpp', 'arac/koni.cpp', 'arac/onerme_koni.py') }}
+      - name: Belgeler / Documents
+        if: inputs.belgeler == 'evet'
+        run: |
+          set -uo pipefail
+          zstd -dc /mnt/is/ay/ay.ndjson.zst > /mnt/is/ay.ndjson; ls -la /mnt/is/ay.ndjson; free -g | head -2
+          python3 -I arac/dokak.py /mnt/is/ay.ndjson /mnt/is/sonuc/dokak.jsonl.gz 4000 3000 2>&1 | tail -5
+          rm -f /mnt/is/ay.ndjson
+          cp /mnt/is/ay/bos_tum.tsv /mnt/is/sonuc/ 2>/dev/null || true
+          # ağaçtaki adlar Lean'in yazımına çevrilir (_private.M.#0.x -> _private.M.0.x): döküm bu yazımı kullanır
+          sed -i -E 's/\.#([0-9]+)/.\1/g' /mnt/is/sonuc/taslar_ust.tsv
+          KO="$KOK_ONERME"; [ -n "$KO" ] || KO=-
+          KARSILA_GRAFIK=/mnt/is/koni KARSILA_TASLAR=/mnt/is/sonuc/taslar.tsv bash arac/hepsi.sh /mnt/is/sonuc /mnt/is/sonuc/dokak.jsonl.gz "$KO" 8 /mnt/is/sonuc/belge 2>&1 | tail -20
+          ls -la /mnt/is/sonuc /mnt/is/sonuc/belge
+      - name: Döküm var mı / Dump present
+        id: dok
+        if: always()
+        run: if [ -s /mnt/is/sonuc/dokak.jsonl.gz ]; then echo var=1 >> "$GITHUB_OUTPUT"; fi
+      - name: Dökümü önbelleğe al / Cache the dump
+        if: always() && steps.dok.outputs.var == '1'
+        uses: actions/cache/save@v4
+        with:
+          path: /mnt/is/sonuc/dokak.jsonl.gz
+          key: dok-${{ inputs.ad }}-${{ github.run_id }}
+      - name: Kaydet / Commit
+        if: always()
+        run: |
+          set -uo pipefail
+          D=${GITHUB_REF_NAME}; H="sinama/$AD"
+          for i in 1 2 3 4 5 6; do
+            git fetch -q origin "$D" && git reset -q --hard "origin/$D"
+            mkdir -p "$H"
+            cp /mnt/is/sonuc/KONI.md /mnt/is/sonuc/ozet.json /mnt/is/sonuc/aksiyomlar.tsv /mnt/is/sonuc/kaynak.txt /mnt/is/sonuc/proje_kokleri.txt /mnt/is/sonuc/proje_adlari.txt.gz /mnt/is/sonuc/bos_tum.tsv "$H"/ 2>/dev/null || true
+            if [ -f /mnt/is/sonuc/taslar_ust.tsv ]; then sed -E 's/\.#([0-9]+)/.\1/g' /mnt/is/sonuc/taslar_ust.tsv > "$H/taslar_ust.tsv"; fi
+            cp /mnt/is/sonuc/belge/*.md /mnt/is/sonuc/belge/karsila.tsv "$H"/ 2>/dev/null || true
+            for d in tr en; do python3 -I arac/evrak.py --klasor "$H" --dil $d --pdf > /dev/null 2>&1 || true; done
+            python3 -I arac/sinama_tablo.py > /dev/null || true
+            git add sinama SINAMA.md
+            git commit -q -m "xray-export: $AD" || break
+            git push -q origin "HEAD:$D" && break
+            sleep $((RANDOM % 20 + 5))
+          done
+      - name: Tam tablolar / Full tables
+        if: always()
+        run: |
+          for f in taslar.tsv kullanilmayan.tsv; do if [ -f /mnt/is/sonuc/$f ]; then gzip -9 -c /mnt/is/sonuc/$f > /mnt/is/sonuc/$f.gz; fi; done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: xray-export-${{ inputs.ad }}
+          path: |
+            /mnt/is/sonuc/taslar.tsv.gz
+            /mnt/is/sonuc/kullanilmayan.tsv.gz
+          if-no-files-found: ignore
+          retention-days: 90

@@ -1,0 +1,216 @@
+# xray-repo — bir Lean deposundan röntgen / x-ray from a Lean repository
+# EN: For projects that can be built on a GitHub runner. Give the repository, the module and the root theorem.
+#     If the project has a hand-written blueprint, the result is also compared with it (the answer key).
+# TR: Hedef projeyi derler, kök teoremin lean4export kaydını alır, tam bağımlılık grafiğini (arac/koni.cpp),
+#     ispat konisini ve baskınlık ağacını (arac/agac.cpp) çıkarır; sonra sonucu projenin blueprint'iyle
+#     karşılaştırır (arac/blueprint_karsilastir.py). Blueprint burada cevap anahtarıdır.
+#     Sonuç sinama/<ad>/ klasörüne yazılır. Pahalı kısım (derleme + kayıt) önbelleğe alınır.
+# EN: Builds a target project, exports the root theorem, computes the dependency graph, proof cone and
+#     dominator tree, and compares the result with the project's hand-written blueprint (the answer key).
+name: xray-repo
+on:
+  workflow_dispatch:
+    inputs:
+      depo:
+        description: "Hedef depo / target repository (owner/name)"
+        default: "teorth/pfr"
+      modul:
+        description: "Kök teoremin modülü / module of the root theorem"
+        default: "PFR.Main"
+      teorem:
+        description: "Kök teorem / root theorem"
+        default: "PFR_conjecture"
+      onek:
+        description: "Proje modül önekleri (boşlukla) / project module prefixes"
+        default: "PFR"
+      blueprint:
+        description: "Blueprint LaTeX klasörü / blueprint source directory"
+        default: "blueprint/src"
+      ad:
+        description: "Sonuç klasörü adı / result folder name"
+        default: "pfr"
+      klasor:
+        description: "Depo içindeki Lake projesi klasörü (boş: kök) / Lake project subfolder"
+        default: ""
+      onek_kenar:
+        description: "Denetlenecek iddia: 'A. B.' = A.* bildirimleri B.*'den hiçbir şey kullanmıyor mu (boş: yok)"
+        default: ""
+      kok_onerme:
+        description: "Ana önermenin adı (mantık haritası için; boş: yok) / name of the main statement"
+        default: ""
+permissions:
+  contents: write
+concurrency:
+  group: sinama-${{ inputs.ad }}
+  cancel-in-progress: false
+jobs:
+  sinama:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+      - name: Hedef / Target
+        id: hedef
+        run: |
+          sudo mkdir -p /mnt/is && sudo chown "$USER" /mnt/is
+          git clone --depth 1 "https://github.com/${{ inputs.depo }}" /mnt/is/hedef
+          cd /mnt/is/hedef
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          git rev-parse HEAD > /mnt/is/sha.txt
+          if [ -n "${{ inputs.klasor }}" ]; then
+            cd /mnt/is && mv hedef hedef_tum && mv "hedef_tum/${{ inputs.klasor }}" hedef && cd hedef
+          fi
+          (git log -1 --format='%H %ci' || true); cat lean-toolchain; ls
+      - name: Kayıt önbelleği / Export cache
+        id: kayit
+        uses: actions/cache/restore@v4
+        with:
+          path: /mnt/is/veri
+          key: sinama-v3-${{ inputs.depo }}-${{ inputs.klasor }}-${{ steps.hedef.outputs.sha }}-${{ inputs.teorem }}-${{ hashFiles('arac/koni.cpp', 'arac/parmakizi.cpp', 'arac/kutuphane_adlari.lean') }}
+          # v2 önbellekleri (klasör adı anahtarda yoktu): yalnız o zaman tek klasörü olan koşular için geçerli
+          restore-keys: ${{ inputs.klasor != 'grh-compact' && format('sinama-v2-{0}-{1}-{2}-', inputs.depo, steps.hedef.outputs.sha, inputs.teorem) || 'yok-' }}
+      - name: Önbellek var mı / Cache present
+        id: var
+        run: |
+          if [ -f /mnt/is/veri/kayit.ndjson.zst ] && [ -f /mnt/is/veri/dugum.tsv ] && [ -f /mnt/is/veri/kenar.bin ]; then echo "var=true" >> "$GITHUB_OUTPUT"; else echo "var=false" >> "$GITHUB_OUTPUT"; fi
+      - name: Lean
+        if: steps.var.outputs.var != 'true'
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Derle / Build
+        if: steps.var.outputs.var != 'true'
+        working-directory: /mnt/is/hedef
+        run: |
+          lake exe cache get || true
+          lake build "${{ inputs.modul }}"
+      - name: lean4export
+        if: steps.var.outputs.var != 'true'
+        run: |
+          surum=$(sed -E 's/.*:v?//' /mnt/is/hedef/lean-toolchain)
+          git clone https://github.com/leanprover/lean4export.git /tmp/l4e
+          cd /tmp/l4e && (git checkout -q "v$surum" || git checkout -q "v${surum%.*}.0" || echo "etiket yok, ana dal")
+          git log -1 --format='%H %d'
+          cp /mnt/is/hedef/lean-toolchain . && lake build
+      - name: Kayıt ve grafik / Export and graph
+        if: steps.var.outputs.var != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p /mnt/is/veri
+          cd /mnt/is/hedef
+          lake env /tmp/l4e/.lake/build/bin/lean4export "${{ inputs.modul }}" -- "${{ inputs.teorem }}" > /mnt/is/kayit.ndjson
+          ls -la /mnt/is/kayit.ndjson; wc -l /mnt/is/kayit.ndjson; head -c 400 /mnt/is/kayit.ndjson; echo
+          cd "$GITHUB_WORKSPACE"
+          g++ -O2 -o /mnt/is/koni_x arac/koni.cpp
+          g++ -O2 -o /mnt/is/parmak_x arac/parmakizi.cpp
+          S=$(wc -l < /mnt/is/kayit.ndjson)
+          export KUNYE_KAPASITE=$((S + 1000))
+          /mnt/is/koni_x /mnt/is/k.bin /mnt/is/veri < /mnt/is/kayit.ndjson 2>&1 | tee /mnt/is/veri/koni.log
+          /mnt/is/parmak_x /mnt/is/p.bin /mnt/is/yok < /mnt/is/kayit.ndjson > /mnt/is/veri/parmak.tsv
+          rm -f /mnt/is/k.bin /mnt/is/p.bin
+          # kaydın kendisi de saklanır (sıkıştırılmış): terim dökümü ağaç hesaplandıktan sonra, önbellekten de yapılabilsin
+          zstd -3 -T0 -q -c /mnt/is/kayit.ndjson > /mnt/is/veri/kayit.ndjson.zst; ls -la /mnt/is/veri/kayit.ndjson.zst
+          rm -rf /mnt/is/veri/blueprint && mkdir -p /mnt/is/veri/blueprint
+          if [ -d "/mnt/is/hedef/${{ inputs.blueprint }}" ]; then cp -r "/mnt/is/hedef/${{ inputs.blueprint }}/." /mnt/is/veri/blueprint/; fi
+          echo "${{ inputs.depo }} ${{ steps.hedef.outputs.sha }} $(cat /mnt/is/hedef/lean-toolchain)" > /mnt/is/veri/kaynak.txt
+          ls -la /mnt/is/veri
+      - name: Kütüphane adları / Library names
+        if: steps.var.outputs.var != 'true'
+        continue-on-error: true
+        working-directory: /mnt/is/hedef
+        run: |
+          lake env lean --run "$GITHUB_WORKSPACE/arac/kutuphane_adlari.lean" /mnt/is/veri/kutuphane.txt "${{ inputs.modul }}" ${{ inputs.onek }}
+          wc -l /mnt/is/veri/kutuphane.txt
+      - name: Kaydı sakla / Save
+        if: steps.var.outputs.var != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: /mnt/is/veri
+          key: sinama-v3-${{ inputs.depo }}-${{ inputs.klasor }}-${{ steps.hedef.outputs.sha }}-${{ inputs.teorem }}-${{ hashFiles('arac/koni.cpp', 'arac/parmakizi.cpp', 'arac/kutuphane_adlari.lean') }}
+      - name: Ağaç, rapor, karşılaştırma / Tree, report, comparison
+        run: |
+          set -uo pipefail
+          g++ -O2 -o /mnt/is/agac_x arac/agac.cpp
+          mkdir -p /mnt/is/sonuc
+          echo "${{ inputs.teorem }}" > /mnt/is/kok.txt
+          K=/mnt/is/veri/kutuphane.txt; [ -s "$K" ] || K=-
+          /mnt/is/agac_x /mnt/is/veri/dugum.tsv /mnt/is/veri/kenar.bin /mnt/is/kok.txt "$K" /mnt/is/sonuc 2>&1 | tee /mnt/is/sonuc/agac.log
+          python3 -I arac/koni_rapor.py --koni /mnt/is/sonuc --parmak /mnt/is/veri/parmak.tsv --md /mnt/is/sonuc/KONI.md --ust /mnt/is/sonuc/taslar_ust.tsv
+          # Lean derlemeden terim dökümü: bu koşunun üst düğümleri için kayıttan ayıkla, dökak ile çevir; bütün kayıtta boş koşul taraması
+          if [ -f /mnt/is/veri/kayit.ndjson.zst ]; then
+            g++ -O2 -o /mnt/is/ayikla_x arac/ayikla.cpp
+            # en ağır adımlar (ispat terimleriyle) ve önermelerini okumak için gereken proje tanımları (grafikten)
+            awk -F'\t' 'NR > 1 { print $1 }' /mnt/is/sonuc/taslar_ust.tsv > /mnt/is/ispat.txt
+            python3 -I arac/onerme_koni.py /mnt/is/veri/dugum.tsv /mnt/is/veri/kenar.bin /mnt/is/ispat.txt "$K" > /mnt/is/ad.txt
+            zstd -dc /mnt/is/veri/kayit.ndjson.zst | AYIKLA_BOS=/mnt/is/sonuc/bos_tum.tsv /mnt/is/ayikla_x 1 /mnt/is/ay.bin /mnt/is/ad.txt /mnt/is/ispat.txt
+            zstd -dc /mnt/is/veri/kayit.ndjson.zst | /mnt/is/ayikla_x 2 /mnt/is/ay.bin /mnt/is/ad.txt /mnt/is/ispat.txt > /mnt/is/ay.ndjson
+            ls -la /mnt/is/ay.ndjson
+            python3 -I arac/dokak.py /mnt/is/ay.ndjson /mnt/is/sonuc/dokak.jsonl.gz ${{ startsWith(inputs.ad, 'grh') && '6000 6000' || '60000 400' }}
+            rm -f /mnt/is/ay.bin*
+            # ağaçtaki adlar Lean'in yazımına çevrilir (_private.M.#0.x -> _private.M.0.x): döküm bu yazımı kullanır
+            sed -i -E 's/\.#([0-9]+)/.\1/g' /mnt/is/sonuc/taslar_ust.tsv
+          fi
+          if [ -n "${{ inputs.onek_kenar }}" ]; then
+            python3 -I arac/onek_kenar.py /mnt/is/veri/dugum.tsv /mnt/is/veri/kenar.bin ${{ inputs.onek_kenar }} /mnt/is/sonuc/onek_kenar.txt || true
+          fi
+          # Proje bildirimlerinin tam ad listesi (kütüphanede olmayanlar): belgeler proje/kütüphane ayrımını buradan yapar
+          if [ -s /mnt/is/veri/kutuphane.txt ]; then
+            awk -F'\t' 'NR==FNR { k[$0]=1; next } !($3 in k) { print $3 }' /mnt/is/veri/kutuphane.txt /mnt/is/veri/dugum.tsv | sed -E 's/\.#([0-9]+)/.\1/g' | LC_ALL=C sort | gzip -9 -n > /mnt/is/sonuc/proje_adlari.txt.gz
+            zcat /mnt/is/sonuc/proje_adlari.txt.gz | wc -l
+          fi
+          # Belgeler / documents: tek komut, iki dil
+          if [ -f /mnt/is/sonuc/dokak.jsonl.gz ]; then
+            KO="${{ inputs.kok_onerme }}"; [ -n "$KO" ] || KO=-
+            KARSILA_GRAFIK=/mnt/is/veri KARSILA_TASLAR=/mnt/is/sonuc/taslar.tsv bash arac/hepsi.sh /mnt/is/sonuc /mnt/is/sonuc/dokak.jsonl.gz "$KO" 8 /mnt/is/sonuc/belge 2>&1 | tail -20 || true
+          fi
+          # Yol payı: kökten yapraklara giden bağımlılık yollarının her bildirimden geçen kesri (baskınlığa ek ölçü)
+          g++ -O2 -o /mnt/is/yol_x arac/yol.cpp
+          /mnt/is/yol_x /mnt/is/veri/dugum.tsv /mnt/is/veri/kenar.bin "${{ inputs.teorem }}" "$K" /mnt/is/sonuc/yol.tsv 2>&1 | tee /mnt/is/sonuc/yol.log || true
+          if [ -s /mnt/is/sonuc/yol.tsv ]; then
+            (head -1 /mnt/is/sonuc/yol.tsv; tail -n +2 /mnt/is/sonuc/yol.tsv | LC_ALL=C sort -t"$(printf '\t')" -k2,2gr -k1,1 | awk 'NR <= 400') | sed -E 's/\.#([0-9]+)/.\1/g' > /mnt/is/sonuc/yol_ust.tsv
+          fi
+          python3 -I arac/blueprint_karsilastir.py --blueprint /mnt/is/veri/blueprint --dugum /mnt/is/veri/dugum.tsv \
+            --kenar /mnt/is/veri/kenar.bin --taslar /mnt/is/sonuc/taslar.tsv --md /mnt/is/sonuc/BLUEPRINT.md --yol /mnt/is/sonuc/yol.tsv
+          ls -la /mnt/is/sonuc
+      # Terim dökümü başka projenin kodundan türediği için depoya işlenmez; Actions önbelleğinde tutulur (son erişimden yaklaşık 7 gün sonra silinir).
+      - name: Döküm var mı / Dump present
+        id: dok
+        if: always()
+        run: if [ -s /mnt/is/sonuc/dokak.jsonl.gz ]; then echo var=1 >> "$GITHUB_OUTPUT"; fi
+      - name: Dökümü önbelleğe al / Cache the dump
+        if: always() && steps.dok.outputs.var == '1'
+        uses: actions/cache/save@v4
+        with:
+          path: /mnt/is/sonuc/dokak.jsonl.gz
+          key: dok-${{ inputs.ad }}-${{ github.run_id }}
+      - name: Kaydet / Commit
+        if: always()
+        run: |
+          H="sinama/${{ inputs.ad }}"
+          if [ -f /mnt/is/sonuc/taslar.tsv ]; then gzip -9 -c /mnt/is/sonuc/taslar.tsv > /mnt/is/sonuc/taslar.tsv.gz; fi
+          git config user.name "kunye-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Her denemede uzak dalın ucuna geç, dosyaları yeniden koy: eşzamanlı koşular çakışmaz
+          for i in 1 2 3 4 5 6; do
+            git fetch -q origin main && git reset -q --hard origin/main
+            mkdir -p "$H"
+            cp /mnt/is/sonuc/KONI.md /mnt/is/sonuc/BLUEPRINT.md /mnt/is/sonuc/ozet.json /mnt/is/sonuc/taslar_ust.tsv /mnt/is/veri/kaynak.txt "$H"/ 2>/dev/null || true
+            cp /mnt/is/sonuc/yol_ust.tsv /mnt/is/sonuc/yol.log /mnt/is/sonuc/proje_adlari.txt.gz /mnt/is/sonuc/bos_tum.tsv /mnt/is/sonuc/onek_kenar.txt "$H"/ 2>/dev/null || true
+            cp /mnt/is/sonuc/belge/*.md /mnt/is/sonuc/belge/karsila.tsv /mnt/is/sonuc/aksiyomlar.tsv "$H"/ 2>/dev/null || true
+            for d in tr en; do python3 -I arac/evrak.py --klasor "$H" --dil $d --pdf > /dev/null 2>&1 || true; done
+            python3 -I arac/sinama_tablo.py > /dev/null || true
+            git add sinama SINAMA.md
+            git commit -q -m "Sınama / validation: ${{ inputs.ad }}" || break
+            git push -q origin HEAD:main && break
+            sleep $((RANDOM % 20 + 5))
+          done
+          if [ -f "$H/BLUEPRINT.md" ]; then cat "$H/BLUEPRINT.md" >> "$GITHUB_STEP_SUMMARY"; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sinama-${{ inputs.ad }}
+          path: |
+            /mnt/is/sonuc/taslar.tsv.gz
+            /mnt/is/sonuc/kullanilmayan.tsv
+          if-no-files-found: ignore
+          retention-days: 90

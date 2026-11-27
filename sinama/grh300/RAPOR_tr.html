@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang='tr'><head><meta charset='utf-8'><title>Röntgen raporu: riemannHypothesis</title><style>
+@page{size:A4;margin:18mm 17mm}body{font-family:'DejaVu Sans','Noto Sans',Arial,sans-serif;font-size:10.5pt;line-height:1.5;color:#1a1a1a;max-width:176mm;margin:0 auto}
+h1{font-size:21pt;margin:0 0 2pt}h2{font-size:13.5pt;margin:20pt 0 6pt;padding-bottom:3pt;border-bottom:1.5pt solid #1a1a1a}h2 small{font-size:8pt;font-weight:normal;color:#666;float:right;margin-top:5pt}
+.alt{color:#555;margin:0 0 12pt}.kunye{font-size:9pt;color:#444;margin-bottom:10pt}code{font-family:'DejaVu Sans Mono',monospace;font-size:9pt;background:#f1f1ee;padding:0 2pt;border-radius:2pt;word-break:break-all}
+table{border-collapse:collapse;width:100%;font-size:9.5pt}td,th{padding:4pt 6pt;border-bottom:.5pt solid #ccc;vertical-align:top;text-align:left}th{border-bottom:1pt solid #1a1a1a}td.s{text-align:right;white-space:nowrap}
+.ozet td:first-child{width:14pt;font-weight:bold;text-align:center}.ozet td:nth-child(2){width:32%;font-weight:bold}.ok td:first-child{color:#1c7c3c}.uyari td:first-child{color:#b45309}.bilgi td:first-child{color:#777}
+.herkes{font-size:11.5pt;line-height:1.6}.not{font-size:8.5pt;color:#555}.kutu{background:#f6f6f3;border-left:3pt solid #999;padding:7pt 10pt;font-size:9pt;margin-top:8pt}li{margin-bottom:4pt}.sayfa{page-break-before:always}
+</style></head><body>
+<h1>Röntgen raporu</h1><p class='alt'>Bir Lean ispatının içinde ne var</p>
+<p class='kunye'><b>Kök teorem:</b> <code>riemannHypothesis</code><br><b>Kaynak:</b> lsernau/grh-lean 72fead102f663d5c7a407964a13dc0cf9d977207 leanprover/lean4:v4.35.0</p>
+<h2>Özet <small>araç saydı</small></h2><table class='ozet'>
+<tr class='ok'><td>✓</td><td>Ne kanıtlıyor</td><td>Ana cümle yalnızca kütüphane kavramlarıyla yazılmış; içinde projeye özgü tanım yok.</td></tr>
+<tr class='ok'><td>✓</td><td>Neye dayanıyor</td><td>Yalnızca Lean'in standart aksiyomları (Classical.choice, Quot.sound, propext). Eksik bırakılmış ispat yok.</td></tr>
+<tr class='bilgi'><td>·</td><td>Ne kadar büyük</td><td>İspatta 49.815 proje bildirimi var; 42.204 tanesi teorem.</td></tr>
+<tr class='bilgi'><td>·</td><td>Hangi yoldan gidiyor</td><td>İspatın düğüm noktası: <code>New.Data.primeRemainder_le</code> (payı %93,8; ispatın bu kadarı yalnızca onun için var).</td></tr>
+<tr class='ok'><td>✓</td><td>Hiçbir şey sınamayan koşul</td><td>Bulunmadı (bütün kayıt tarandı).</td></tr>
+<tr class='ok'><td>✓</td><td>Varsayım olarak taşınan önerme</td><td>0</td></tr>
+<tr class='bilgi'><td>·</td><td>Tekrar</td><td>Teorem önermelerinin %20,3 kadarı, başka adla zaten var olan bir cümlenin kopyası.</td></tr>
+</table>
+<h2>Herkes için</h2><p>Bu ispat için henüz hikâye yazılmadı. Harita hazır; hikâye adımı arac/hikaye/ANLATICI.md ile çalıştırılır.</p>
+<h2 class='sayfa'>Kanıt sayfası <small>araç saydı</small></h2><h3>En büyük adımlar</h3><table><tr><th>Adım</th><th>Pay</th><th>Yalnızca şunun için var</th></tr>
+<tr><td><code>riemannHypothesis</code></td><td class='s'>%100,0</td><td>—</td></tr>
+<tr><td><code>New.grh</code></td><td class='s'>%100,0</td><td><code>riemannHypothesis</code></td></tr>
+<tr><td><code>New.eventually_primeRemainder_le_rpow</code></td><td class='s'>%99,7</td><td><code>New.grh</code></td></tr>
+<tr><td><code>New.eventually_primeRemainder_natCast_le</code></td><td class='s'>%99,7</td><td><code>New.eventually_primeRemainder_le_rpow</code></td></tr>
+<tr><td><code>New.Data.primeRemainder_le</code></td><td class='s'>%93,8</td><td><code>New.eventually_primeRemainder_natCast_le</code></td></tr>
+<tr><td><code>New.star_inequality</code></td><td class='s'>%93,8</td><td><code>New.Data.primeRemainder_le</code></td></tr>
+<tr><td><code>New.Data.integral_forms_long</code></td><td class='s'>%55,7</td><td><code>New.star_inequality</code></td></tr>
+<tr><td><code>New.Data.exists_hasSmallRatios_heightLe_liftDeterminant_div</code></td><td class='s'>%46,6</td><td><code>New.Data.integral_forms_long</code></td></tr>
+<tr><td><code>New.exists_isRegularFamily</code></td><td class='s'>%40,2</td><td><code>New.Data.exists_hasSmallRatios_heightLe_liftDeterminant_div</code></td></tr>
+<tr><td><code>New.Selmer.exists_mFoldTwist_hasDenominatorsLe</code></td><td class='s'>%35,1</td><td><code>New.exists_isRegularFamily</code></td></tr>
+<tr><td><code>New.GaloisRep.sphericalCompat_of_odd</code></td><td class='s'>%17,1</td><td><code>New.Selmer.exists_mFoldTwist_hasDenominatorsLe</code></td></tr>
+<tr><td><code>New.GaloisRep.sphericalCompat_of_split</code></td><td class='s'>%17,0</td><td><code>New.GaloisRep.sphericalCompat_of_odd</code></td></tr>
+<tr><td><code>_private.Lib.GaloisRep.Main.SplitCase.0.New.GaloisRep.exists_rep_of_free_weight</code></td><td class='s'>%16,4</td><td><code>New.GaloisRep.sphericalCompat_of_split</code></td></tr>
+<tr><td><code>New.GaloisRep.exists_rep_of_cuspidal_type</code></td><td class='s'>%16,4</td><td><code>_private.Lib.GaloisRep.Main.SplitCase.0.New.GaloisRep.exists_rep_of_free_weight</code></td></tr>
+</table><p class='not'>“Pay”: ispatın yalnızca o adım için var olan kısmı. Önem ölçüsü değildir.</p>
+<div class='kutu'><b>Kim ne yaptı.</b> Özet ve kanıt sayfasındaki her sayı, Lean'in kendi kaydından sabit kurallarla sayıldı; yapay zekâ kullanılmadı ve yeniden koşturan herkes aynı sayıları alır. “Herkes için”, “Beş cümlede fikir”, “Matematikçi için” ve “Anlayamadıkları” bölümlerini bir dil modeli (Claude) yazdı; model yalnızca haritayı ve istediği tek tek bildirimlerin kodunu gördü. Denetçi hikâyenin yapısını doğrular (adımlar gerçek mi, yerleri ve ağırlıkları doğru mu); matematik okumasını doğrulamaz. O okuma bir matematikçi tarafından onaylanmadı.</div><p class='not'>lean-proof-xray · github.com/altunsumerve/lean-proof-xray</p></body></html>

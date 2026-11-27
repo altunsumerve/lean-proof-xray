@@ -1,0 +1,3 @@
+kaynak: 794 dosya; Lib.*: 573 modül; New.*: 219 modül
+Lib.* modüllerinin doğrudan içe aktardıkları, ilk bileşene göre: Lib 960, Mathlib 1
+SONUÇ: Lib -> New yolu YOK: hiçbir Lib.* modülü, doğrudan ya da dolaylı, bir New.* modülünü içe aktarmıyor.
